@@ -1,5 +1,5 @@
-/* Weather+Reddit PWA — Combined Service Worker */
-const CACHE = 'wr-pwa-v1';
+/* Weather+Reddit+Podcasts PWA — Combined Service Worker */
+const CACHE = 'wr-pwa-v2';
 const SHELL = [
   './',
   './index.html',
@@ -14,6 +14,7 @@ const SHELL = [
   './reddit/index.html',
   './reddit/icon-192.png',
   './reddit/icon-512.png',
+  './podcast/index.html',
 ];
 
 self.addEventListener('install', e => {
@@ -37,7 +38,7 @@ self.addEventListener('fetch', e => {
   const { hostname } = url;
 
   const FONT_HOSTS = new Set(['fonts.googleapis.com', 'fonts.gstatic.com']);
-  const API_HOSTS  = new Set(['api.met.no', 'nominatim.openstreetmap.org', 'reddit.com', 'www.reddit.com']);
+  const API_HOSTS  = new Set(['api.met.no', 'nominatim.openstreetmap.org', 'reddit.com', 'www.reddit.com', 'itunes.apple.com', 'api.allorigins.win']);
 
   if (API_HOSTS.has(hostname)) {
     e.respondWith(

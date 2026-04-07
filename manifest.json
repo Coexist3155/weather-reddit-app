@@ -1,7 +1,7 @@
 {
-  "name": "Weather & Reddit",
-  "short_name": "W+R",
-  "description": "YrWeather + RedditLight — two apps, one PWA",
+  "name": "My Apps",
+  "short_name": "My Apps",
+  "description": "Weather · Reddit · Podcasts — three apps, one PWA",
   "id": "./",
   "start_url": "./",
   "scope": "./",
@@ -35,6 +35,6 @@
       "purpose": "maskable"
     }
   ],
-  "categories": ["weather", "news", "utilities"],
+  "categories": ["weather", "news", "entertainment", "utilities"],
   "prefer_related_applications": false
 }
