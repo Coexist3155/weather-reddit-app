@@ -6,20 +6,21 @@
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <meta name="apple-mobile-web-app-title" content="Podcasts"/>
-  <meta name="theme-color" content="#0e0e14"/>
+  <meta name="theme-color" content="#1a73e8"/>
   <title>Podcasts</title>
   <style>
     :root {
-      --bg: #0e0e14;
-      --surf: #16161f;
-      --surf2: #1d1d2a;
-      --surf3: #242433;
-      --border: #2a2a3d;
-      --text: #e4e6ef;
-      --text2: #9ba3b6;
-      --text3: #5c6172;
-      --accent: #7c3aed;
-      --accent2: #9d5cf6;
+      --bg: #f8f9fa;
+      --surf: #ffffff;
+      --surf2: #f1f3f4;
+      --surf3: #e8eaed;
+      --border: rgba(0,0,0,0.10);
+      --text: #202124;
+      --text2: #5f6368;
+      --text3: #80868b;
+      --accent: #1a73e8;
+      --accent2: #1557b0;
+      --shadow-card: 0 1px 4px rgba(0,0,0,0.10);
       --r: 12px;
       --nav-h: 58px;
     }
@@ -47,7 +48,7 @@
       gap: 10px;
       padding: 0 14px;
       height: 52px;
-      background: rgba(14,14,20,.97);
+      background: rgba(248,249,250,.97);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
       border-bottom: 1px solid var(--border);
@@ -122,6 +123,8 @@
       display: flex;
       flex-direction: column;
       gap: 1px;
+      box-shadow: var(--shadow-card);
+      border-radius: var(--r);
     }
 
     .podcast-row {
@@ -195,6 +198,8 @@
       display: flex;
       flex-direction: column;
       gap: 1px;
+      box-shadow: var(--shadow-card);
+      border-radius: var(--r);
     }
 
     .episode-row {
@@ -294,8 +299,9 @@
     #player-bar {
       display: none;
       flex-shrink: 0;
-      background: var(--surf2);
+      background: var(--surf);
       border-top: 1px solid var(--border);
+      box-shadow: 0 -1px 4px rgba(0,0,0,0.08);
       padding: 10px 14px;
       padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
     }
@@ -341,6 +347,22 @@
       stroke: #fff;
       stroke-width: 2.5;
       stroke-linecap: round;
+    }
+
+    #btn-skip-back, #btn-skip-fwd {
+      width: 34px;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      color: var(--text2);
+    }
+
+    #btn-skip-back svg, #btn-skip-fwd svg {
+      width: 20px;
+      height: 20px;
+      fill: currentColor;
     }
 
     .progress-row {
@@ -475,8 +497,14 @@
   <div id="player-bar">
     <div class="player-row">
       <span id="player-title">—</span>
+      <button id="btn-skip-back" aria-label="Skip back 15 seconds">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/><text x="8.5" y="14.5" font-size="5.5" font-weight="700" font-family="sans-serif">15</text></svg>
+      </button>
       <button id="btn-play-pause" aria-label="Play / Pause">
         <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      </button>
+      <button id="btn-skip-fwd" aria-label="Skip forward 15 seconds">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 5V1l5 5-5 5V7c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6h2c0 4.42-3.58 8-8 8s-8-3.58-8-8 3.58-8 8-8z"/><text x="8.5" y="14.5" font-size="5.5" font-weight="700" font-family="sans-serif">15</text></svg>
       </button>
     </div>
     <div class="progress-row">
@@ -503,6 +531,8 @@ const backRow      = document.getElementById('back-row');
 const playerBar    = document.getElementById('player-bar');
 const playerTitle  = document.getElementById('player-title');
 const btnPlayPause = document.getElementById('btn-play-pause');
+const btnSkipBack  = document.getElementById('btn-skip-back');
+const btnSkipFwd   = document.getElementById('btn-skip-fwd');
 const progressBar  = document.getElementById('progress-bar');
 const timeCur      = document.getElementById('time-cur');
 const timeTotal    = document.getElementById('time-total');
@@ -738,6 +768,13 @@ audioEl.addEventListener('timeupdate', () => {
 
 progressBar.addEventListener('mousedown',  () => { dragging = true; });
 progressBar.addEventListener('touchstart', () => { dragging = true; }, { passive: true });
+progressBar.addEventListener('touchend', () => {
+  dragging = false;
+  if (!audioEl.duration) return;
+  audioEl.currentTime = (progressBar.value / 100) * audioEl.duration;
+});
+progressBar.addEventListener('touchcancel', () => { dragging = false; }, { passive: true });
+window.addEventListener('mouseup', () => { dragging = false; });
 progressBar.addEventListener('input', () => {
   if (!audioEl.duration) return;
   timeCur.textContent = fmtTime((progressBar.value / 100) * audioEl.duration);
@@ -749,6 +786,16 @@ progressBar.addEventListener('change', () => {
 });
 
 btnPlayPause.addEventListener('click', togglePlayPause);
+
+btnSkipBack.addEventListener('click', () => {
+  audioEl.currentTime = Math.max(0, audioEl.currentTime - 15);
+});
+
+btnSkipFwd.addEventListener('click', () => {
+  if (audioEl.duration) {
+    audioEl.currentTime = Math.min(audioEl.duration, audioEl.currentTime + 15);
+  }
+});
 
 /* ── Search events ── */
 btnSearch.addEventListener('click', () => {
