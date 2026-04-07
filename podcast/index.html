@@ -608,17 +608,17 @@ function renderSearchResults() {
         <div class="podcast-title">${escHtml(pod.collectionName || pod.trackName || 'Untitled')}</div>
         <div class="podcast-author">${escHtml(pod.artistName || '')}</div>
       </div>`;
-    row.addEventListener('click', () => loadPodcastFeed(pod.feedUrl, pod.collectionName || pod.trackName));
+    row.addEventListener('click', () => loadPodcastFeed(pod.collectionId || pod.trackId, pod.collectionName || pod.trackName));
     list.appendChild(row);
   });
 
   contentArea.appendChild(list);
 }
 
-/* ── Load RSS feed ── */
-async function loadPodcastFeed(feedUrl, podcastName) {
-  if (!feedUrl) {
-    stateError.textContent = 'No feed available for this podcast.';
+/* ── Load episodes via iTunes lookup API ── */
+async function loadPodcastFeed(podcastId, podcastName) {
+  if (!podcastId) {
+    stateError.textContent = 'No episode data available for this podcast.';
     setState('error');
     return;
   }
@@ -627,33 +627,24 @@ async function loadPodcastFeed(feedUrl, podcastName) {
   backRow.style.display = 'flex';
 
   try {
-    const proxy = `https://api.allorigins.win/raw?url=${encodeURIComponent(feedUrl)}`;
-    const res = await fetch(proxy);
-    if (!res.ok) throw new Error('Feed fetch failed');
-    const text = await res.text();
-    const episodes = parseRSS(text);
+    const url = `https://itunes.apple.com/lookup?id=${encodeURIComponent(podcastId)}&media=podcast&entity=podcastEpisode&limit=200`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Lookup failed');
+    const json = await res.json();
+    const episodes = (json.results || [])
+      .filter(r => r.kind === 'podcast-episode')
+      .map(r => ({
+        title:    r.trackName || r.episodeTitle || 'Episode',
+        url:      r.episodeUrl || r.previewUrl || '',
+        duration: r.trackTimeMillis ? Math.floor(r.trackTimeMillis / 1000) : 0,
+        date:     r.releaseDate || '',
+      }))
+      .filter(ep => ep.url);
     renderEpisodes(episodes, podcastName);
   } catch {
-    stateError.textContent = 'Could not load episodes. The feed may be unavailable.';
+    stateError.textContent = 'Could not load episodes. Please try again.';
     setState('error');
   }
-}
-
-function parseRSS(xml) {
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(xml, 'text/xml');
-  const items = Array.from(doc.querySelectorAll('item'));
-  return items.slice(0, 50).map(item => {
-    const enclosure = item.querySelector('enclosure');
-    const duration  = item.querySelector('duration');
-    const pubDate   = item.querySelector('pubDate');
-    return {
-      title:    item.querySelector('title')?.textContent?.trim() || 'Untitled',
-      url:      enclosure?.getAttribute('url') || '',
-      duration: duration?.textContent?.trim() || '',
-      date:     pubDate?.textContent?.trim() || '',
-    };
-  }).filter(ep => ep.url);
 }
 
 function renderEpisodes(episodes, podcastName) {
@@ -692,7 +683,7 @@ function renderEpisodes(episodes, podcastName) {
       <span class="ep-num">${i + 1}</span>
       <div class="ep-info">
         <div class="ep-title">${escHtml(ep.title)}</div>
-        <div class="ep-meta">${ep.duration ? escHtml(ep.duration) : ''}${ep.date ? (ep.duration ? ' · ' : '') + new Date(ep.date).toLocaleDateString() : ''}</div>
+        <div class="ep-meta">${ep.duration ? fmtTime(ep.duration) : ''}${ep.date ? (ep.duration ? ' · ' : '') + new Date(ep.date).toLocaleDateString() : ''}</div>
       </div>
       <div class="ep-play-btn${isPlaying ? ' pause' : ''}" aria-label="${isPlaying ? 'Pause' : 'Play'}">
         ${isPlaying
