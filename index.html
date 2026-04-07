@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#12141a" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="W+R" />
+  <title>Weather &amp; Reddit</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #12141a;
+      --surf: #1a1d24;
+      --surf2: #22252f;
+      --border: #2c3040;
+      --text: #e4e6ef;
+      --text2: #9ba3b6;
+      --r: 20px;
+    }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Shell ── */
+    #shell {
+      display: flex;
+      flex-direction: column;
+      height: 100dvh;
+      overflow: hidden;
+    }
+
+    /* ── Launcher ── */
+    #launcher {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: env(safe-area-inset-top, 0) 0 env(safe-area-inset-bottom, 0);
+    }
+
+    .launcher-header {
+      text-align: center;
+      padding: 48px 24px 32px;
+    }
+
+    .launcher-header h1 {
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: -.5px;
+      color: var(--text);
+    }
+
+    .launcher-header p {
+      margin-top: 8px;
+      font-size: 14px;
+      color: var(--text2);
+    }
+
+    .app-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding: 0 20px 32px;
+    }
+
+    /* ── App Cards ── */
+    .app-card {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      padding: 22px 22px;
+      border-radius: var(--r);
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: transform .15s, box-shadow .15s, border-color .15s;
+      text-align: left;
+      -webkit-tap-highlight-color: transparent;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .app-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      transition: opacity .15s;
+    }
+
+    .app-card:active { transform: scale(.97); }
+
+    .app-card:hover::before,
+    .app-card:focus-visible::before { opacity: 1; }
+
+    /* Weather card */
+    #card-weather {
+      background: linear-gradient(135deg, #1a3a6e 0%, #1e4d8c 60%, #1a73e8 100%);
+      border-color: #2a5aaa;
+    }
+
+    #card-weather::before {
+      background: rgba(255,255,255,.06);
+    }
+
+    /* Reddit card */
+    #card-reddit {
+      background: linear-gradient(135deg, #1c1410 0%, #2a1a10 60%, #3d1f0a 100%);
+      border-color: #5a2d10;
+    }
+
+    #card-reddit::before {
+      background: rgba(255,100,0,.06);
+    }
+
+    .card-icon {
+      flex-shrink: 0;
+      width: 64px;
+      height: 64px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 34px;
+      line-height: 1;
+    }
+
+    #card-weather .card-icon {
+      background: rgba(255,255,255,.15);
+    }
+
+    #card-reddit .card-icon {
+      background: rgba(255,69,0,.2);
+    }
+
+    .card-text { flex: 1; }
+
+    .card-name {
+      font-size: 20px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -.3px;
+    }
+
+    .card-desc {
+      margin-top: 4px;
+      font-size: 13px;
+      color: rgba(255,255,255,.65);
+      line-height: 1.4;
+    }
+
+    .card-arrow {
+      flex-shrink: 0;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .card-arrow svg {
+      width: 14px;
+      height: 14px;
+      stroke: rgba(255,255,255,.8);
+      fill: none;
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* ── Install banner ── */
+    #install-banner {
+      display: none;
+      margin: 0 20px 20px;
+      background: var(--surf2);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 14px 16px;
+    }
+
+    .install-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .install-icon {
+      font-size: 24px;
+    }
+
+    .install-text { flex: 1; font-size: 13px; color: var(--text2); }
+    .install-text strong { color: var(--text); font-size: 14px; display: block; margin-bottom: 2px; }
+
+    .install-btns { display: flex; gap: 8px; }
+
+    .install-btns button {
+      padding: 7px 14px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+    }
+
+    #btn-install-yes {
+      background: #1a73e8;
+      color: #fff;
+    }
+
+    #btn-install-no {
+      background: var(--surf);
+      color: var(--text2);
+      border: 1px solid var(--border);
+    }
+
+    /* ── Iframe overlay ── */
+    #viewer {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      background: #000;
+      display: flex;
+      flex-direction: column;
+      transform: translateY(100%);
+      transition: transform .3s cubic-bezier(.4,0,.2,1);
+    }
+
+    #viewer.open {
+      transform: translateY(0);
+    }
+
+    #viewer-bar {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      height: 44px;
+      background: rgba(0,0,0,.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      padding: 0 12px;
+      padding-top: env(safe-area-inset-top, 0);
+    }
+
+    #btn-back {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px 6px 6px;
+      border-radius: 10px;
+      border: none;
+      background: rgba(255,255,255,.1);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    #btn-back svg {
+      width: 16px;
+      height: 16px;
+      stroke: #fff;
+      fill: none;
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    #viewer-title {
+      flex: 1;
+      text-align: center;
+      font-size: 15px;
+      font-weight: 600;
+      color: rgba(255,255,255,.9);
+      margin-right: 76px; /* balance with back button */
+    }
+
+    #app-frame {
+      flex: 1;
+      border: none;
+      width: 100%;
+      background: #000;
+    }
+  </style>
+</head>
+<body>
+
+<div id="shell">
+  <div id="launcher">
+    <div class="launcher-header">
+      <h1>Weather &amp; Reddit</h1>
+      <p>Choose an app to launch</p>
+    </div>
+
+    <div class="app-grid">
+      <!-- Weather card -->
+      <button class="app-card" id="card-weather" aria-label="Open YrWeather">
+        <div class="card-icon">☀️</div>
+        <div class="card-text">
+          <div class="card-name">YrWeather</div>
+          <div class="card-desc">Live forecasts powered by MET Norway · Hourly & 10-day</div>
+        </div>
+        <div class="card-arrow">
+          <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+      </button>
+
+      <!-- Reddit card -->
+      <button class="app-card" id="card-reddit" aria-label="Open RedditLight">
+        <div class="card-icon">🤖</div>
+        <div class="card-text">
+          <div class="card-name">RedditLight</div>
+          <div class="card-desc">Fast, mobile-friendly Reddit reader · Any subreddit</div>
+        </div>
+        <div class="card-arrow">
+          <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+      </button>
+    </div>
+
+    <!-- Install banner -->
+    <div id="install-banner">
+      <div class="install-row">
+        <span class="install-icon">📲</span>
+        <div class="install-text">
+          <strong>Install App</strong>
+          Add Weather &amp; Reddit to your home screen
+        </div>
+        <div class="install-btns">
+          <button id="btn-install-yes">Install</button>
+          <button id="btn-install-no">✕</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Fullscreen iframe viewer -->
+<div id="viewer" role="dialog" aria-modal="true" aria-label="App viewer">
+  <div id="viewer-bar">
+    <button id="btn-back" aria-label="Back to launcher">
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      Back
+    </button>
+    <div id="viewer-title"></div>
+  </div>
+  <iframe id="app-frame" title="App content" allow="geolocation"></iframe>
+</div>
+
+<script>
+  'use strict';
+
+  const viewer     = document.getElementById('viewer');
+  const appFrame   = document.getElementById('app-frame');
+  const viewerTitle = document.getElementById('viewer-title');
+  const btnBack    = document.getElementById('btn-back');
+  const installBanner = document.getElementById('install-banner');
+
+  function openApp(src, title) {
+    viewerTitle.textContent = title;
+    appFrame.src = src;
+    viewer.classList.add('open');
+    viewer.setAttribute('aria-hidden', 'false');
+    history.pushState({ app: src }, '', '');
+  }
+
+  function closeViewer() {
+    viewer.classList.remove('open');
+    viewer.setAttribute('aria-hidden', 'true');
+    // Delay clearing src to allow close animation to finish
+    setTimeout(() => { appFrame.src = ''; }, 350);
+  }
+
+  document.getElementById('card-weather').addEventListener('click', () => {
+    openApp('./weather/index.html', 'YrWeather');
+  });
+
+  document.getElementById('card-reddit').addEventListener('click', () => {
+    openApp('./reddit/index.html', 'RedditLight');
+  });
+
+  btnBack.addEventListener('click', () => {
+    closeViewer();
+    history.back();
+  });
+
+  // Handle hardware back button / browser back navigation
+  window.addEventListener('popstate', () => {
+    if (viewer.classList.contains('open')) {
+      closeViewer();
+    }
+  });
+
+  // PWA install prompt
+  let deferredPrompt = null;
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredPrompt = e;
+    setTimeout(() => { installBanner.style.display = 'block'; }, 3000);
+  });
+
+  document.getElementById('btn-install-yes').addEventListener('click', async () => {
+    installBanner.style.display = 'none';
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      await deferredPrompt.userChoice;
+      deferredPrompt = null;
+    }
+  });
+
+  document.getElementById('btn-install-no').addEventListener('click', () => {
+    installBanner.style.display = 'none';
+  });
+
+  window.addEventListener('appinstalled', () => {
+    installBanner.style.display = 'none';
+  });
+
+  // Register service worker
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  }
+</script>
+</body>
+</html>
