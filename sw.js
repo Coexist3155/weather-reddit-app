@@ -38,7 +38,7 @@ self.addEventListener('fetch', e => {
   const { hostname } = url;
 
   const FONT_HOSTS = new Set(['fonts.googleapis.com', 'fonts.gstatic.com']);
-  const API_HOSTS  = new Set(['api.met.no', 'nominatim.openstreetmap.org', 'reddit.com', 'www.reddit.com', 'itunes.apple.com', 'api.allorigins.win']);
+  const API_HOSTS  = new Set(['api.met.no', 'nominatim.openstreetmap.org', 'reddit.com', 'www.reddit.com', 'itunes.apple.com']);
 
   if (API_HOSTS.has(hostname)) {
     e.respondWith(
