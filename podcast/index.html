@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="Podcasts"/>
+  <meta name="theme-color" content="#0e0e14"/>
+  <title>Podcasts</title>
+  <style>
+    :root {
+      --bg: #0e0e14;
+      --surf: #16161f;
+      --surf2: #1d1d2a;
+      --surf3: #242433;
+      --border: #2a2a3d;
+      --text: #e4e6ef;
+      --text2: #9ba3b6;
+      --text3: #5c6172;
+      --accent: #7c3aed;
+      --accent2: #9d5cf6;
+      --r: 12px;
+      --nav-h: 58px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 14px;
+      -webkit-font-smoothing: antialiased;
+      overscroll-behavior: none;
+    }
+    a { color: inherit; text-decoration: none; }
+    button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+    img { display: block; }
+
+    #app { display: flex; flex-direction: column; height: 100dvh; }
+
+    /* ── Top bar ── */
+    #topbar {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 14px;
+      height: 52px;
+      background: rgba(14,14,20,.97);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      z-index: 200;
+    }
+
+    #topbar h1 {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text);
+      flex: 1;
+    }
+
+    /* ── Search bar ── */
+    #search-wrap {
+      flex-shrink: 0;
+      padding: 10px 14px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+    }
+
+    #search-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    #search-input {
+      flex: 1;
+      background: var(--surf2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-size: 14px;
+      padding: 9px 14px;
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    #search-input::placeholder { color: var(--text3); }
+    #search-input:focus { border-color: var(--accent2); }
+
+    #btn-search {
+      background: var(--accent);
+      color: #fff;
+      border-radius: 10px;
+      padding: 9px 16px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    /* ── Scrollable area ── */
+    #scroll-area {
+      flex: 1;
+      overflow-y: auto;
+      overscroll-behavior-y: contain;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: 20px;
+    }
+
+    /* ── Section label ── */
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .8px;
+      text-transform: uppercase;
+      color: var(--text3);
+      padding: 18px 14px 8px;
+    }
+
+    /* ── Podcast search results ── */
+    .podcast-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .podcast-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      background: var(--surf);
+      cursor: pointer;
+      transition: background .1s;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .podcast-row:first-child { border-radius: var(--r) var(--r) 0 0; }
+    .podcast-row:last-child  { border-radius: 0 0 var(--r) var(--r); }
+    .podcast-row:only-child  { border-radius: var(--r); }
+    .podcast-row:active { background: var(--surf3); }
+
+    .podcast-thumb {
+      width: 52px;
+      height: 52px;
+      border-radius: 8px;
+      object-fit: cover;
+      background: var(--surf3);
+      flex-shrink: 0;
+    }
+
+    .podcast-thumb-placeholder {
+      width: 52px;
+      height: 52px;
+      border-radius: 8px;
+      background: var(--surf3);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .podcast-thumb-placeholder svg {
+      width: 24px;
+      height: 24px;
+      stroke: var(--text3);
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .podcast-info { flex: 1; min-width: 0; }
+
+    .podcast-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .podcast-author {
+      font-size: 12px;
+      color: var(--text2);
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* ── Episode list ── */
+    .episode-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .episode-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      background: var(--surf);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: background .1s;
+    }
+
+    .episode-row:first-child { border-radius: var(--r) var(--r) 0 0; }
+    .episode-row:last-child  { border-radius: 0 0 var(--r) var(--r); }
+    .episode-row:only-child  { border-radius: var(--r); }
+    .episode-row:active { background: var(--surf3); }
+    .episode-row.playing { background: var(--surf3); }
+
+    .ep-num {
+      width: 28px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--text3);
+      flex-shrink: 0;
+    }
+
+    .ep-info { flex: 1; min-width: 0; }
+
+    .ep-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .ep-meta {
+      font-size: 11px;
+      color: var(--text2);
+      margin-top: 2px;
+    }
+
+    .ep-play-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .ep-play-btn svg {
+      width: 14px;
+      height: 14px;
+      fill: #fff;
+      stroke: none;
+    }
+
+    .ep-play-btn.pause svg {
+      fill: none;
+      stroke: #fff;
+      stroke-width: 2.5;
+      stroke-linecap: round;
+    }
+
+    /* ── Back button row ── */
+    #back-row {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 14px 4px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    #back-row svg {
+      width: 18px;
+      height: 18px;
+      stroke: var(--accent2);
+      fill: none;
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    #back-row span {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--accent2);
+    }
+
+    /* ── Now-playing bar ── */
+    #player-bar {
+      display: none;
+      flex-shrink: 0;
+      background: var(--surf2);
+      border-top: 1px solid var(--border);
+      padding: 10px 14px;
+      padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    }
+
+    #player-bar.active { display: block; }
+
+    .player-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    #player-title {
+      flex: 1;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    #btn-play-pause {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    #btn-play-pause svg {
+      width: 16px;
+      height: 16px;
+      fill: #fff;
+      stroke: none;
+    }
+
+    #btn-play-pause.pause svg {
+      fill: none;
+      stroke: #fff;
+      stroke-width: 2.5;
+      stroke-linecap: round;
+    }
+
+    .progress-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    #progress-bar {
+      flex: 1;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 4px;
+      border-radius: 2px;
+      background: var(--border);
+      outline: none;
+      cursor: pointer;
+    }
+
+    #progress-bar::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--accent2);
+      cursor: pointer;
+    }
+
+    #progress-bar::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--accent2);
+      border: none;
+      cursor: pointer;
+    }
+
+    #time-cur, #time-total {
+      font-size: 11px;
+      color: var(--text3);
+      width: 36px;
+      flex-shrink: 0;
+    }
+
+    #time-total { text-align: right; }
+
+    /* ── States ── */
+    #state-empty, #state-loading, #state-error {
+      padding: 48px 24px;
+      text-align: center;
+      color: var(--text3);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    #state-empty svg {
+      width: 48px;
+      height: 48px;
+      stroke: var(--text3);
+      fill: none;
+      stroke-width: 1.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      margin: 0 auto 16px;
+    }
+
+    #state-loading .spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent2);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      margin: 0 auto 16px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+<div id="app">
+  <!-- Top bar -->
+  <div id="topbar">
+    <h1>Podcasts</h1>
+  </div>
+
+  <!-- Search bar -->
+  <div id="search-wrap">
+    <div id="search-row">
+      <input id="search-input" type="search" placeholder="Search podcasts…" autocomplete="off" autocorrect="off" spellcheck="false"/>
+      <button id="btn-search">Search</button>
+    </div>
+  </div>
+
+  <!-- Scrollable content -->
+  <div id="scroll-area">
+
+    <!-- Back to results -->
+    <div id="back-row">
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      <span>Search results</span>
+    </div>
+
+    <!-- States -->
+    <div id="state-empty">
+      <svg viewBox="0 0 24 24">
+        <path d="M12 1a4 4 0 0 0-4 4v7a4 4 0 0 0 8 0V5a4 4 0 0 0-4-4z"/>
+        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+        <line x1="12" y1="19" x2="12" y2="23"/>
+        <line x1="8"  y1="23" x2="16" y2="23"/>
+      </svg>
+      Search for a podcast to get started
+    </div>
+
+    <div id="state-loading" class="hidden">
+      <div class="spinner"></div>
+      Loading…
+    </div>
+
+    <div id="state-error" class="hidden"></div>
+
+    <!-- Results / episodes list container -->
+    <div id="content-area"></div>
+
+  </div>
+
+  <!-- Now-playing bar -->
+  <div id="player-bar">
+    <div class="player-row">
+      <span id="player-title">—</span>
+      <button id="btn-play-pause" aria-label="Play / Pause">
+        <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      </button>
+    </div>
+    <div class="progress-row">
+      <span id="time-cur">0:00</span>
+      <input id="progress-bar" type="range" min="0" max="100" value="0" step="0.1"/>
+      <span id="time-total">0:00</span>
+    </div>
+  </div>
+</div>
+
+<audio id="audio-el" preload="none"></audio>
+
+<script>
+'use strict';
+
+/* ── Elements ── */
+const searchInput  = document.getElementById('search-input');
+const btnSearch    = document.getElementById('btn-search');
+const stateEmpty   = document.getElementById('state-empty');
+const stateLoading = document.getElementById('state-loading');
+const stateError   = document.getElementById('state-error');
+const contentArea  = document.getElementById('content-area');
+const backRow      = document.getElementById('back-row');
+const playerBar    = document.getElementById('player-bar');
+const playerTitle  = document.getElementById('player-title');
+const btnPlayPause = document.getElementById('btn-play-pause');
+const progressBar  = document.getElementById('progress-bar');
+const timeCur      = document.getElementById('time-cur');
+const timeTotal    = document.getElementById('time-total');
+const audioEl      = document.getElementById('audio-el');
+
+/* ── State ── */
+let searchResults = [];
+let currentEpisodeUrl = null;
+let dragging = false;
+
+/* ── Utility ── */
+function setState(name) {
+  stateEmpty.classList.toggle('hidden', name !== 'empty');
+  stateLoading.classList.toggle('hidden', name !== 'loading');
+  stateError.classList.toggle('hidden', name !== 'error');
+  contentArea.innerHTML = '';
+}
+
+function fmtTime(s) {
+  if (!s || isNaN(s)) return '0:00';
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
+  return `${m}:${sec.toString().padStart(2, '0')}`;
+}
+
+/* ── Search podcasts via iTunes Search API ── */
+async function searchPodcasts(query) {
+  setState('loading');
+  backRow.style.display = 'none';
+
+  try {
+    const url = `https://itunes.apple.com/search?media=podcast&entity=podcast&limit=25&term=${encodeURIComponent(query)}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Search failed');
+    const data = await res.json();
+    searchResults = data.results || [];
+    renderSearchResults();
+  } catch (err) {
+    stateError.textContent = 'Could not search. Check your connection and try again.';
+    setState('error');
+  }
+}
+
+function renderSearchResults() {
+  if (searchResults.length === 0) {
+    stateError.textContent = 'No podcasts found. Try a different search.';
+    setState('error');
+    return;
+  }
+
+  stateEmpty.classList.add('hidden');
+  stateLoading.classList.add('hidden');
+  stateError.classList.add('hidden');
+  contentArea.innerHTML = '';
+
+  const label = document.createElement('div');
+  label.className = 'section-label';
+  label.textContent = `${searchResults.length} results`;
+  contentArea.appendChild(label);
+
+  const list = document.createElement('div');
+  list.className = 'podcast-list';
+  list.style.padding = '0 14px';
+
+  searchResults.forEach(pod => {
+    const row = document.createElement('div');
+    row.className = 'podcast-row';
+    row.innerHTML = `
+      ${pod.artworkUrl60
+        ? `<img class="podcast-thumb" src="${pod.artworkUrl60}" alt="" loading="lazy"/>`
+        : `<div class="podcast-thumb-placeholder"><svg viewBox="0 0 24 24"><path d="M12 1a4 4 0 0 0-4 4v7a4 4 0 0 0 8 0V5a4 4 0 0 0-4-4z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></div>`}
+      <div class="podcast-info">
+        <div class="podcast-title">${escHtml(pod.collectionName || pod.trackName || 'Untitled')}</div>
+        <div class="podcast-author">${escHtml(pod.artistName || '')}</div>
+      </div>`;
+    row.addEventListener('click', () => loadPodcastFeed(pod.feedUrl, pod.collectionName || pod.trackName));
+    list.appendChild(row);
+  });
+
+  contentArea.appendChild(list);
+}
+
+/* ── Load RSS feed ── */
+async function loadPodcastFeed(feedUrl, podcastName) {
+  if (!feedUrl) {
+    stateError.textContent = 'No feed available for this podcast.';
+    setState('error');
+    return;
+  }
+
+  setState('loading');
+  backRow.style.display = 'flex';
+
+  try {
+    const proxy = `https://api.allorigins.win/raw?url=${encodeURIComponent(feedUrl)}`;
+    const res = await fetch(proxy);
+    if (!res.ok) throw new Error('Feed fetch failed');
+    const text = await res.text();
+    const episodes = parseRSS(text);
+    renderEpisodes(episodes, podcastName);
+  } catch {
+    stateError.textContent = 'Could not load episodes. The feed may be unavailable.';
+    setState('error');
+  }
+}
+
+function parseRSS(xml) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(xml, 'text/xml');
+  const items = Array.from(doc.querySelectorAll('item'));
+  return items.slice(0, 50).map(item => {
+    const enclosure = item.querySelector('enclosure');
+    const duration  = item.querySelector('duration');
+    const pubDate   = item.querySelector('pubDate');
+    return {
+      title:    item.querySelector('title')?.textContent?.trim() || 'Untitled',
+      url:      enclosure?.getAttribute('url') || '',
+      duration: duration?.textContent?.trim() || '',
+      date:     pubDate?.textContent?.trim() || '',
+    };
+  }).filter(ep => ep.url);
+}
+
+function renderEpisodes(episodes, podcastName) {
+  stateEmpty.classList.add('hidden');
+  stateLoading.classList.add('hidden');
+  stateError.classList.add('hidden');
+  contentArea.innerHTML = '';
+
+  const label = document.createElement('div');
+  label.className = 'section-label';
+  label.textContent = escHtml(podcastName || 'Episodes');
+  contentArea.appendChild(label);
+
+  if (episodes.length === 0) {
+    const msg = document.createElement('div');
+    msg.className = 'section-label';
+    msg.style.color = 'var(--text2)';
+    msg.textContent = 'No playable episodes found.';
+    contentArea.appendChild(msg);
+    return;
+  }
+
+  const list = document.createElement('div');
+  list.className = 'episode-list';
+  list.style.padding = '0 14px';
+
+  episodes.forEach((ep, i) => {
+    const row = document.createElement('div');
+    row.className = 'episode-row';
+    row.dataset.url = ep.url;
+
+    const isPlaying = currentEpisodeUrl === ep.url && !audioEl.paused;
+    if (currentEpisodeUrl === ep.url) row.classList.add('playing');
+
+    row.innerHTML = `
+      <span class="ep-num">${i + 1}</span>
+      <div class="ep-info">
+        <div class="ep-title">${escHtml(ep.title)}</div>
+        <div class="ep-meta">${ep.duration ? escHtml(ep.duration) : ''}${ep.date ? (ep.duration ? ' · ' : '') + new Date(ep.date).toLocaleDateString() : ''}</div>
+      </div>
+      <div class="ep-play-btn${isPlaying ? ' pause' : ''}" aria-label="${isPlaying ? 'Pause' : 'Play'}">
+        ${isPlaying
+          ? `<svg viewBox="0 0 24 24"><line x1="6" y1="4" x2="6" y2="20"/><line x1="18" y1="4" x2="18" y2="20"/></svg>`
+          : `<svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>`}
+      </div>`;
+
+    row.addEventListener('click', () => playEpisode(ep.url, ep.title, row));
+    list.appendChild(row);
+  });
+
+  contentArea.appendChild(list);
+}
+
+/* ── Playback ── */
+function playEpisode(url, title, rowEl) {
+  if (currentEpisodeUrl === url) {
+    togglePlayPause();
+    return;
+  }
+
+  currentEpisodeUrl = url;
+  audioEl.src = url;
+  audioEl.play().catch(() => {});
+
+  playerTitle.textContent = title;
+  playerBar.classList.add('active');
+  updatePlayPauseIcon(false);
+  updateRowIcons();
+}
+
+function togglePlayPause() {
+  if (audioEl.paused) {
+    audioEl.play().catch(() => {});
+  } else {
+    audioEl.pause();
+  }
+}
+
+function updatePlayPauseIcon(paused) {
+  btnPlayPause.classList.toggle('pause', !paused);
+  btnPlayPause.innerHTML = paused
+    ? `<svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>`
+    : `<svg viewBox="0 0 24 24" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><line x1="6" y1="4" x2="6" y2="20"/><line x1="18" y1="4" x2="18" y2="20"/></svg>`;
+}
+
+function updateRowIcons() {
+  document.querySelectorAll('.episode-row').forEach(row => {
+    const isThis = row.dataset.url === currentEpisodeUrl;
+    const paused = audioEl.paused;
+    row.classList.toggle('playing', isThis);
+    const btn = row.querySelector('.ep-play-btn');
+    if (!btn) return;
+    btn.classList.toggle('pause', isThis && !paused);
+    btn.innerHTML = isThis && !paused
+      ? `<svg viewBox="0 0 24 24" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><line x1="6" y1="4" x2="6" y2="20"/><line x1="18" y1="4" x2="18" y2="20"/></svg>`
+      : `<svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>`;
+  });
+}
+
+/* ── Audio events ── */
+audioEl.addEventListener('play',  () => { updatePlayPauseIcon(false); updateRowIcons(); });
+audioEl.addEventListener('pause', () => { updatePlayPauseIcon(true);  updateRowIcons(); });
+audioEl.addEventListener('ended', () => { updatePlayPauseIcon(true);  updateRowIcons(); });
+
+audioEl.addEventListener('timeupdate', () => {
+  if (dragging || !audioEl.duration) return;
+  const pct = (audioEl.currentTime / audioEl.duration) * 100;
+  progressBar.value = pct;
+  timeCur.textContent   = fmtTime(audioEl.currentTime);
+  timeTotal.textContent = fmtTime(audioEl.duration);
+});
+
+progressBar.addEventListener('mousedown',  () => { dragging = true; });
+progressBar.addEventListener('touchstart', () => { dragging = true; }, { passive: true });
+progressBar.addEventListener('input', () => {
+  if (!audioEl.duration) return;
+  timeCur.textContent = fmtTime((progressBar.value / 100) * audioEl.duration);
+});
+progressBar.addEventListener('change', () => {
+  dragging = false;
+  if (!audioEl.duration) return;
+  audioEl.currentTime = (progressBar.value / 100) * audioEl.duration;
+});
+
+btnPlayPause.addEventListener('click', togglePlayPause);
+
+/* ── Search events ── */
+btnSearch.addEventListener('click', () => {
+  const q = searchInput.value.trim();
+  if (q) searchPodcasts(q);
+});
+
+searchInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    const q = searchInput.value.trim();
+    if (q) searchPodcasts(q);
+  }
+});
+
+/* ── Back to results ── */
+backRow.addEventListener('click', () => {
+  backRow.style.display = 'none';
+  renderSearchResults();
+});
+
+/* ── Escape HTML ── */
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+</script>
+</body>
+</html>
