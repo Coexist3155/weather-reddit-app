@@ -766,7 +766,11 @@ function buildEmbed(wrap,media){
 function errHtml(msg,url){return`<div class="media-error">⚠️ ${esc(msg)}<br><a href="${esc(url||'')}" target="_blank">Open ↗</a></div>`;}
 
 /* LIGHTBOX */
-function openLightbox(src){lightboxContent.innerHTML='';const img=new Image();img.src=src;lightboxContent.appendChild(img);lightbox.classList.add('open');}
+let _lightboxFrom='main'; // 'main' | 'comments' — set when lightbox opens; closing it leaves the comments sheet intact
+function openLightbox(src){
+  _lightboxFrom=commentSheet.classList.contains('open')?'comments':'main';
+  lightboxContent.innerHTML='';const img=new Image();img.src=src;lightboxContent.appendChild(img);lightbox.classList.add('open');
+}
 function closeLightbox(){lightbox.classList.remove('open');setTimeout(()=>lightboxContent.innerHTML='',200);}
 document.getElementById('lightboxClose').addEventListener('click',closeLightbox);
 lightbox.addEventListener('click',e=>{if(e.target===lightbox||e.target===lightboxContent)closeLightbox();});
@@ -839,12 +843,22 @@ function closeComments(){
     commentStatus.style.display='none';
   },360);
 }
+let _confirmMode='comments'; // 'comments' | 'exit' — controls what confirmYes does
+const confirmMsg=document.querySelector('#confirmDialogBox .confirm-msg');
+const confirmSub=document.querySelector('#confirmDialogBox .confirm-sub');
 function requestCloseComments(){
   if(!commentSheet.classList.contains('open'))return;
+  _confirmMode='comments';
+  confirmMsg.textContent='Close comments?';
+  confirmSub.textContent="You'll return to the feed";
   confirmDialog.classList.add('open');
 }
 function hideConfirm(){confirmDialog.classList.remove('open');}
-document.getElementById('confirmYes').addEventListener('click',()=>{hideConfirm();closeComments();});
+document.getElementById('confirmYes').addEventListener('click',()=>{
+  const mode=_confirmMode;hideConfirm();
+  if(mode==='exit'){window.location.assign('../');}
+  else{closeComments();}
+});
 document.getElementById('confirmNo').addEventListener('click',hideConfirm);
 /* Backdrop tap triggers confirm */
 sheetBackdrop.addEventListener('click',requestCloseComments);
@@ -975,6 +989,36 @@ fontMedium.addEventListener('click',()=>{appSettings.font='m';saveSettings();app
 fontLarge.addEventListener('click',()=>{appSettings.font='l';saveSettings();applySettings();});
 accessibleToggle.addEventListener('click',()=>{appSettings.accessible=!appSettings.accessible;saveSettings();applySettings();});
 applySettings();
+
+/* ── BACK NAVIGATION ── */
+/* Establish a guard history entry so back gestures can be intercepted */
+history.replaceState({view:'main'},'');
+history.pushState({view:'guard'},'');
+
+window.addEventListener('popstate',()=>{
+  /* Always restore the guard so the next back can be intercepted too */
+  history.pushState({view:'guard'},'');
+
+  if(lightbox.classList.contains('open')){
+    /* Media view → go back to where it was launched from (no confirm needed) */
+    closeLightbox();
+  }else if(settingsPanel.classList.contains('open')){
+    closeSettings();
+  }else if(searchOverlay.classList.contains('open')){
+    closeSearch();
+  }else if(confirmDialog.classList.contains('open')){
+    hideConfirm();
+  }else if(commentSheet.classList.contains('open')){
+    /* Comments view → ask to confirm closing */
+    requestCloseComments();
+  }else{
+    /* Main feed → ask to confirm exit to apps list */
+    _confirmMode='exit';
+    confirmMsg.textContent='Exit RedditLight?';
+    confirmSub.textContent="You'll return to the apps list";
+    confirmDialog.classList.add('open');
+  }
+});
 
 loadFeed();
 </script>
